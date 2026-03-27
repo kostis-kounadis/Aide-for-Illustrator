@@ -12,6 +12,18 @@ Works with **local AI models** (via [Ollama](https://ollama.com)) for complete p
 
 ---
 
+## 📸 Screenshots
+
+| Welcome Screen | Code Generation |
+|:-:|:-:|
+| ![Welcome](screenshots/welcome.png) | ![Code Generation](screenshots/code-generation.png) |
+
+| Settings | Scripts Library |
+|:-:|:-:|
+| ![Settings](screenshots/settings.png) | ![Scripts Library](screenshots/scripts-library.png) |
+
+---
+
 ## ✨ Features
 
 - **Natural Language → ExtendScript** — Describe your task, get working code
@@ -144,17 +156,6 @@ Make sure the folder contains `CSXS\manifest.xml` at the top level.
 2. Enter your API key.
 3. Select a model from the dropdown (models are fetched automatically).
 
-### Recommended Ollama Models
-
-| Model | RAM | Notes |
-|-------|-----|-------|
-| `qwen2.5-coder:14b` | 16GB+ | Best balance of speed and quality |
-| `qwen2.5-coder:7b` | 8GB+ | Good for most systems |
-| `deepseek-coder-v2:16b` | 16GB+ | Strong code generation |
-| `codestral:22b` | 32GB+ | Very capable, needs high RAM |
-| `codegemma:7b` | 8GB+ | Lightweight alternative |
-| `codellama:7b` | 8GB+ | Good ES3 adherence |
-
 ---
 
 ## 🗂 Project Structure
@@ -175,6 +176,7 @@ Aide/
 ├── jsx/
 │   └── host.jsx              # ExtendScript executor & file I/O bridge
 ├── index.html                # Tab-based SPA shell
+├── screenshots/              # README images
 ├── install_extension.command       # macOS one-click installer
 ├── enable_debug_mode.command       # macOS debug mode enabler
 ├── uninstall_extension.command     # macOS uninstaller
@@ -223,3 +225,5 @@ This project is licensed under the MIT License — see the [LICENSE](LICENSE) fi
 
 - [Ollama](https://ollama.com) — Local AI model runtime
 - [Adobe CEP Resources](https://github.com/Adobe-CEP/CEP-Resources) — CEP framework and CSInterface.js
+
+Built with the help of AI coding assistants. Designed and directed by a graphic designer who got tired of doing repetitive Illustrator tasks by hand.
