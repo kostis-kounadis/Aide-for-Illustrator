@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aide</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- ─── Header ─── -->
+        <header class="app-header" id="app-header">
+            <div class="header-left">
+                <div class="logo-icon" id="logo-icon">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <span class="header-title">Aide</span>
+            </div>
+            <div class="header-right">
+                <div class="connection-dot" id="connection-dot" title="Checking..."></div>
+                <span class="connection-label" id="connection-label">Checking...</span>
+            </div>
+        </header>
+
+        <!-- ─── Tab Navigation ─── -->
+        <nav class="tab-bar" id="tab-bar">
+            <button class="tab-btn active" data-tab="chat" id="tab-chat" title="Chat">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+                </svg>
+                <span>Chat</span>
+            </button>
+            <button class="tab-btn" data-tab="scripts" id="tab-scripts" title="Saved Scripts">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                <span>Scripts</span>
+            </button>
+            <button class="tab-btn" data-tab="settings" id="tab-settings" title="Settings">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+                </svg>
+                <span>Settings</span>
+            </button>
+        </nav>
+
+        <!-- ─── Chat Tab ─── -->
+        <main class="tab-content active" id="view-chat">
+            <div class="chat-messages" id="chat-messages">
+                <div class="chat-welcome" id="chat-welcome">
+                    <div class="welcome-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                    </div>
+                    <p class="welcome-title">What would you like to automate?</p>
+                    <p class="welcome-subtitle">Describe your Illustrator task in plain language. I'll generate the ExtendScript to do it.</p>
+                    <div class="quick-prompts">
+                        <button class="quick-prompt-btn" data-prompt="Create 3 artboards: 300x250, 728x90, 160x600 and name them by size">Artboard sizes</button>
+                        <button class="quick-prompt-btn" data-prompt="Select all text frames and change the font to Arial">Change fonts</button>
+                        <button class="quick-prompt-btn" data-prompt="Export each artboard as a separate PNG file at 2x resolution">Export PNGs</button>
+                    </div>
+                </div>
+            </div>
+            <div class="chat-input-area" id="chat-input-area">
+                <!-- File attachment indicator -->
+                <div class="attached-file hidden" id="attached-file">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    <span class="attached-file-name" id="attached-file-name"></span>
+                    <button class="attached-file-remove" id="remove-attachment" title="Remove">✕</button>
+                </div>
+                <div class="input-row">
+                    <button class="attach-btn" id="attach-btn" title="Attach file (CSV, TXT)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/>
+                        </svg>
+                    </button>
+                    <input type="file" id="file-input" accept=".csv,.txt,.tsv,.json" class="hidden">
+                    <textarea id="prompt-input" placeholder="Describe your task..." rows="1"></textarea>
+                    <button id="send-btn" class="send-btn" title="Send (⌘+Enter)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="22" y1="2" x2="11" y2="13"/>
+                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="input-meta">
+                    <span class="model-indicator" id="model-indicator">qwen2.5-coder:7b</span>
+                    <button class="new-chat-btn" id="new-chat-btn" title="New conversation">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        New Chat
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- ─── Scripts Tab ─── -->
+        <main class="tab-content" id="view-scripts">
+            <div class="scripts-header">
+                <input type="text" class="search-input" id="scripts-search" placeholder="Search scripts...">
+            </div>
+            <div class="scripts-list" id="scripts-list">
+                <div class="empty-state" id="scripts-empty">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.3">
+                        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                    <p>No saved scripts yet</p>
+                    <p class="empty-hint">Scripts you save from chat will appear here</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- ─── Settings Tab ─── -->
+        <main class="tab-content" id="view-settings">
+            <div class="settings-sections">
+                <!-- Provider -->
+                <fieldset class="settings-group">
+                    <legend>Provider</legend>
+                    <div class="setting-row">
+                        <label for="provider-select">Source</label>
+                        <select id="provider-select">
+                            <option value="ollama">Ollama (Local)</option>
+                            <option value="google">Google Gemini</option>
+                            <option value="openai">OpenAI</option>
+                            <option value="anthropic">Anthropic</option>
+                            <option value="custom">Custom API</option>
+                        </select>
+                    </div>
+                    <div class="setting-row" id="ollama-host-row">
+                        <label for="ollama-host">Endpoint</label>
+                        <input type="text" id="ollama-host" value="http://localhost:11434" placeholder="http://localhost:11434">
+                    </div>
+                    <div class="setting-row hidden" id="custom-endpoint-row">
+                        <label for="custom-endpoint">API URL</label>
+                        <input type="text" id="custom-endpoint" placeholder="https://api.example.com/v1/chat/completions">
+                    </div>
+                    <div class="setting-row hidden" id="api-key-row">
+                        <label for="api-key">API Key</label>
+                        <div class="key-input-wrap">
+                            <input type="password" id="api-key" placeholder="sk-...">
+                            <button class="icon-btn" id="toggle-key-vis" title="Show/Hide">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                    <circle cx="12" cy="12" r="3"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="setting-hint hidden" id="provider-hint"></p>
+                </fieldset>
+
+                <!-- Model -->
+                <fieldset class="settings-group">
+                    <legend>Model</legend>
+                    <div class="setting-row">
+                        <label for="model-select">Model</label>
+                        <select id="model-select">
+                            <option value="">Loading models...</option>
+                        </select>
+                    </div>
+                    <div class="setting-row hidden" id="model-custom-row">
+                        <label for="model-custom">Custom</label>
+                        <div class="override-wrap">
+                            <input type="text" id="model-custom" placeholder="Type model name...">
+                            <button class="clear-btn" id="clear-custom-model" title="Clear custom model" disabled>✕</button>
+                        </div>
+                    </div>
+                    <button class="text-btn" id="refresh-models-btn">↻ Refresh Models</button>
+                </fieldset>
+
+                <!-- Recommended Models (Ollama only) -->
+                <fieldset class="settings-group" id="recommended-models-group">
+                    <legend>Recommended Ollama Models</legend>
+                    <div class="recommended-models" id="recommended-models">
+                        <!-- Populated by app.js -->
+                    </div>
+                    <p class="setting-hint">Click a model to set it as active. Download via terminal: <code>ollama pull model-name</code></p>
+                </fieldset>
+
+                <!-- Advanced -->
+                <fieldset class="settings-group">
+                    <legend>Advanced</legend>
+                    <div class="setting-row">
+                        <label for="temperature-slider">Temperature</label>
+                        <div class="slider-row">
+                            <input type="range" id="temperature-slider" min="0" max="100" value="30" step="5">
+                            <span class="slider-value" id="temperature-value">0.3</span>
+                        </div>
+                    </div>
+                    <p class="setting-hint">Controls randomness of AI responses. Lower = more precise code. Higher = more creative. Applies to all providers. Recommended: 0.1–0.3 for code generation.</p>
+
+                    <div class="setting-row" style="margin-top:8px;">
+                        <label for="debug-toggle">Debug Logging</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="debug-toggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <p class="setting-hint">Logs all prompts, AI responses, and execution results for troubleshooting.</p>
+                    <div class="debug-actions hidden" id="debug-actions">
+                        <button class="compact-btn" id="export-debug-btn">Export Log</button>
+                        <button class="compact-btn danger" id="clear-debug-btn">Clear</button>
+                    </div>
+                </fieldset>
+
+                <!-- Scripts Storage -->
+                <fieldset class="settings-group">
+                    <legend>Scripts Storage</legend>
+                    <p class="setting-hint">Saved scripts are stored in the browser. Export them as .jsx files to a folder.</p>
+                    <div class="storage-path">
+                        <span class="storage-path-value" id="scripts-folder-path">~/Documents/Aide Scripts/</span>
+                        <button class="compact-btn" id="change-scripts-folder" title="Change folder">Change</button>
+                    </div>
+                    <div class="debug-actions" style="margin-top:4px;">
+                        <button class="compact-btn" id="open-scripts-folder">Open Folder</button>
+                        <button class="compact-btn" id="export-all-scripts">Export All</button>
+                    </div>
+                </fieldset>
+
+                <!-- Connection Test -->
+                <div class="settings-footer">
+                    <button class="test-btn" id="test-connection-btn">Test Connection</button>
+                    <span class="test-result" id="test-result"></span>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/CSInterface.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/models.js"></script>
+    <script src="js/scripts.js"></script>
+    <script src="js/chat.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Auto-generated scripts
+restore_debug_mode.command
+restore_debug_mode.sh
+
+# Redundant shell scripts (superseded by .command versions)
+enable_debug_mode.sh
+
+# Internal development rules
+GEMINI.md
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node (if ever used)
+node_modules/
+npm-debug.log*
+
+# Adobe CEP debug
+.debug
+
+# Logs
+*.log
