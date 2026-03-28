@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <button class="undo-edit-btn" data-action="undo-edit" data-code-id="${codeId}" title="Undo edits">↩ Undo</button>
                                 <button class="code-action-btn" data-action="copy" data-code-id="${codeId}">Copy</button>
                                 <button class="code-action-btn save-btn" data-action="save" data-code-id="${codeId}">Save</button>
-                                <button class="code-action-btn execute-btn" data-action="execute" data-code-id="${codeId}">▶ Execute</button>
+                                <button class="code-action-btn execute-btn" data-action="execute" data-code-id="${codeId}">▶ Run</button>
                             </div>
                         </div>
                         <pre class="msg-code-pre has-line-numbers" id="${codeId}" contenteditable="true" spellcheck="false">${codeWithLines}</pre>
@@ -438,7 +438,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (triggerBtn) {
                 triggerBtn.disabled = false;
                 triggerBtn.textContent = isError ? '✕ Failed' : '✓ Done';
-                setTimeout(() => { triggerBtn.textContent = '▶ Execute'; }, 2000);
+                setTimeout(() => { triggerBtn.textContent = '▶ Run'; }, 2000);
             }
 
             showExecResult(triggerBtn, !isError, result);

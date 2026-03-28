@@ -693,6 +693,17 @@ body {
     color: var(--accent);
 }
 
+/* Starred (favorited) button */
+.code-action-btn.starred {
+    background: #ffffff;
+    color: #888888;
+    border-color: #cccccc;
+}
+.code-action-btn.starred:hover {
+    background: #f0f0f0;
+    color: #666666;
+}
+
 /* ═══════════════════════════════════════
    SETTINGS TAB
    ═══════════════════════════════════════ */

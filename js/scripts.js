@@ -141,12 +141,11 @@ const AideScripts = (() => {
                     <span class="script-card-name">${AideUtils.escapeHtml(s.name)}</span>
                     <span class="script-card-date">${AideUtils.formatDate(s.createdAt)}</span>
                 </div>
-                <div class="script-card-preview" data-action="toggle-code" data-id="${s.id}" title="Click to view code">${AideUtils.escapeHtml(s.code.split('\n').slice(0, 2).join(' '))}</div>
                 <div class="script-card-actions">
-                    <button class="code-action-btn execute-btn" data-action="run" data-id="${s.id}" title="Execute">▶ Run</button>
+                    <button class="code-action-btn execute-btn" data-action="run" data-id="${s.id}" title="Run">▶ Run</button>
                     <button class="code-action-btn" data-action="view" data-id="${s.id}" title="View/Edit code">{ }</button>
                     <button class="code-action-btn" data-action="load-chat" data-id="${s.id}" title="Load as context in new chat">💬 Load</button>
-                    <button class="code-action-btn" data-action="fav" data-id="${s.id}" title="Favorite">${s.favorite ? '★' : '☆'}</button>
+                    <button class="code-action-btn${s.favorite ? ' starred' : ''}" data-action="fav" data-id="${s.id}" title="Favorite">${s.favorite ? '★' : '☆'}</button>
                     <button class="code-action-btn" data-action="delete" data-id="${s.id}" title="Delete" style="margin-left:auto">✕</button>
                 </div>
                 <div class="script-code-viewer hidden" id="code-viewer-${s.id}">
