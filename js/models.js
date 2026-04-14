@@ -19,8 +19,15 @@ const AideModels = (() => {
         ollamaHost: 'http://localhost:11434',
         model: 'qwen2.5-coder:7b',
         temperature: 0.3,
-        apiKey: '',
+        apiKeys: {
+            google: '',
+            openai: '',
+            anthropic: '',
+            openrouter: '',
+            custom: ''
+        },
         customEndpoint: '',
+        summaryModel: '',
         debugLogging: false
     };
 
@@ -52,6 +59,12 @@ const AideModels = (() => {
             { name: 'claude-sonnet-4-20250514', desc: 'Best value' },
             { name: 'claude-3-5-haiku-20241022', desc: 'Fast & light' },
             { name: 'claude-opus-4-20250514', desc: 'Most capable' },
+        ],
+        openrouter: [
+            { name: 'anthropic/claude-3.5-sonnet', desc: 'Via OpenRouter' },
+            { name: 'google/gemini-2.0-flash', desc: 'Via OpenRouter' },
+            { name: 'openai/gpt-4o-mini', desc: 'Via OpenRouter' },
+            { name: 'openai/gpt-4o', desc: 'Via OpenRouter' }
         ]
     };
 
@@ -65,7 +78,11 @@ const AideModels = (() => {
         const entry = {
             timestamp: new Date().toISOString(),
             type: type,
-            data: data
+            data: data,
+            // Always include current provider, model, and temperature context
+            provider: config.provider,
+            model: config.model,
+            temperature: config.temperature
         };
         debugLog.push(entry);
         console.log(`[Aide Debug] ${type}:`, data);
@@ -73,7 +90,19 @@ const AideModels = (() => {
         try {
             if (debugLog.length > 500) debugLog = debugLog.slice(-500);
             localStorage.setItem('aide_debug_log', JSON.stringify(debugLog));
-        } catch (e) { /* ignore storage errors */ }
+        } catch (e) {
+            if (e.name === 'QuotaExceededError' || e.message.includes('quota')) {
+                debugLog = debugLog.slice(-Math.floor(debugLog.length / 2));
+                try {
+                    localStorage.setItem('aide_debug_log', JSON.stringify(debugLog));
+                } catch (innerE) { /* Give up */ }
+                
+                // Inform UI in case it wants to show general warning
+                window.dispatchEvent(new CustomEvent('QUOTA_EXCEEDED', {
+                    detail: { source: 'debug' }
+                }));
+            }
+        }
     }
 
     function getDebugLog() {
@@ -87,16 +116,24 @@ const AideModels = (() => {
 
     function clearDebugLog() {
         debugLog = [];
-        try { localStorage.removeItem('aide_debug_log'); } catch (e) {}
+        try { localStorage.removeItem('aide_debug_log'); } catch (e) { }
     }
 
     function exportDebugLog() {
         const log = getDebugLog();
         const lines = log.map(e => {
             const data = typeof e.data === 'string' ? e.data : JSON.stringify(e.data, null, 2);
-            return `[${e.timestamp}] [${e.type}]\n${data}\n`;
+            // Include per-entry provider/model/temperature if available (2.7.4.1)
+            const meta = [
+                e.provider ? `Provider: ${e.provider}` : '',
+                e.model ? `Model: ${e.model}` : '',
+                e.temperature !== undefined ? `Temperature: ${e.temperature}` : ''
+            ].filter(Boolean).join(' | ');
+            const metaLine = meta ? `\n[${meta}]` : '';
+            return `[${e.timestamp}] [${e.type}]${metaLine}\n${data}\n`;
         });
-        return `AIDE DEBUG LOG\nExported: ${new Date().toISOString()}\nProvider: ${config.provider}\nModel: ${config.model}\n${'='.repeat(60)}\n\n${lines.join('\n' + '-'.repeat(40) + '\n\n')}`;
+        const cfg = config;
+        return `AIDE DEBUG LOG\nExported: ${new Date().toISOString()}\nProvider: ${cfg.provider}\nModel: ${cfg.model}\nTemperature: ${cfg.temperature}\n${'='.repeat(60)}\n\n${lines.join('\n' + '-'.repeat(40) + '\n\n')}`;
     }
 
     // ──────────── Settings ────────────
@@ -105,7 +142,19 @@ const AideModels = (() => {
             const saved = localStorage.getItem('aide_settings');
             if (saved) {
                 const parsed = JSON.parse(saved);
+
+                // Migration: v2.0 had string apiKey, v2.1 uses apiKeys object
+                if (typeof parsed.apiKey === 'string' && !parsed.apiKeys) {
+                    parsed.apiKeys = { ...DEFAULTS.apiKeys };
+                    if (parsed.provider && parsed.provider !== 'ollama') {
+                        parsed.apiKeys[parsed.provider] = parsed.apiKey;
+                    }
+                    delete parsed.apiKey; // remove old key
+                }
+
                 config = { ...DEFAULTS, ...parsed };
+                // Ensure all keys exist if new providers were added
+                config.apiKeys = { ...DEFAULTS.apiKeys, ...(config.apiKeys || {}) };
             }
         } catch (e) {
             console.warn('Could not load settings:', e);
@@ -127,6 +176,12 @@ const AideModels = (() => {
 
     function setConfig(updates) {
         Object.assign(config, updates);
+        saveSettings();
+    }
+
+    function setApiKey(provider, key) {
+        if (!config.apiKeys) config.apiKeys = {};
+        config.apiKeys[provider] = key;
         saveSettings();
     }
 
@@ -159,7 +214,8 @@ const AideModels = (() => {
 
     async function fetchGoogleModels() {
         try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${config.apiKey}`;
+            const key = config.apiKeys?.google || '';
+            const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`;
             const response = await fetch(url);
             if (!response.ok) return REMOTE_MODELS.google;
             const data = await response.json();
@@ -186,26 +242,30 @@ const AideModels = (() => {
 
     async function testRemoteConnection() {
         try {
+            const key = config.apiKeys?.[config.provider] || '';
             if (config.provider === 'google') {
                 const resp = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models?key=${config.apiKey}`
+                    `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`
                 );
                 return { ok: resp.ok, error: resp.ok ? null : `HTTP ${resp.status}` };
             }
-            if (config.provider === 'openai') {
-                const resp = await fetch('https://api.openai.com/v1/models', {
-                    headers: { 'Authorization': `Bearer ${config.apiKey}` }
+            if (config.provider === 'openai' || config.provider === 'openrouter') {
+                const endpoint = config.provider === 'openrouter'
+                    ? 'https://openrouter.ai/api/v1/models'
+                    : 'https://api.openai.com/v1/models';
+                const resp = await fetch(endpoint, {
+                    headers: { 'Authorization': `Bearer ${key}` }
                 });
                 return { ok: resp.ok, error: resp.ok ? null : `HTTP ${resp.status}` };
             }
             if (config.provider === 'anthropic') {
-                const valid = config.apiKey && config.apiKey.startsWith('sk-ant-');
+                const valid = key && key.startsWith('sk-ant-');
                 return { ok: valid, error: valid ? null : 'Invalid key format (expected sk-ant-...)' };
             }
             if (config.provider === 'custom') {
                 if (!config.customEndpoint) return { ok: false, error: 'No endpoint configured' };
                 const resp = await fetch(config.customEndpoint.replace(/\/chat\/completions.*$/, '/models'), {
-                    headers: config.apiKey ? { 'Authorization': `Bearer ${config.apiKey}` } : {}
+                    headers: key ? { 'Authorization': `Bearer ${key}` } : {}
                 });
                 return { ok: resp.ok, error: resp.ok ? null : `HTTP ${resp.status}` };
             }
@@ -215,26 +275,75 @@ const AideModels = (() => {
         }
     }
 
+    // ──────────── Retry with Exponential Backoff ────────────
+    /**
+     * Retry a fetch call with exponential backoff for 5xx and 429 errors.
+     * @param {Function} fetchFn - Function that returns a Promise<Response>
+     * @param {number} maxRetries - Maximum number of retries (default 3)
+     * @param {number} baseDelay - Base delay in ms (default 1000)
+     */
+    async function fetchWithRetry(fetchFn, maxRetries, baseDelay) {
+        maxRetries = maxRetries || 3;
+        baseDelay = baseDelay || 1000;
+        let lastError = null;
+
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
+            try {
+                const response = await fetchFn();
+                // Retry on 429 (Too Many Requests) or 5xx server errors
+                if (response.status === 429 || (response.status >= 500 && response.status < 600)) {
+                    const retryAfter = response.headers.get('Retry-After');
+                    let delay = retryAfter ? parseInt(retryAfter, 10) * 1000 : null;
+                    if (!delay || isNaN(delay)) {
+                        // Exponential backoff with jitter
+                        delay = baseDelay * Math.pow(2, attempt) + Math.random() * 500;
+                    }
+                    lastError = new Error(`HTTP ${response.status} — retrying in ${Math.round(delay / 1000)}s (attempt ${attempt + 1}/${maxRetries + 1})`);
+                    if (attempt < maxRetries) {
+                        await new Promise(function(resolve) { setTimeout(resolve, delay); });
+                        continue;
+                    }
+                }
+                return response;
+            } catch (e) {
+                // Network errors also retried
+                lastError = e;
+                if (attempt < maxRetries) {
+                    const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 500;
+                    await new Promise(function(resolve) { setTimeout(resolve, delay); });
+                    continue;
+                }
+            }
+        }
+        throw lastError;
+    }
+
     // ──────────── Chat API ────────────
-    async function sendChat(messages) {
+    /**
+     * @param {Array}       messages
+     * @param {AbortSignal} [signal]  — pass controller.signal to abort mid-request
+     */
+    async function sendChat(messages, signal) {
         log('request', {
             provider: config.provider,
             model: config.model,
             messageCount: messages.length,
-            lastUserMsg: messages.filter(m => m.role === 'user').slice(-1)[0]?.content?.substring(0, 200)
+            lastUserMsg: messages.filter(m => m.role === 'user').slice(-1)[0]?.content
         });
 
         let response;
         if (config.provider === 'ollama') {
-            response = await sendOllamaChat(messages);
+            response = await sendOllamaChat(messages, signal);
         } else if (config.provider === 'google') {
-            response = await sendGoogleChat(messages);
+            response = await sendGoogleChat(messages, signal);
         } else if (config.provider === 'openai') {
-            response = await sendOpenAIChat(messages);
+            response = await sendOpenAIChat(messages, signal);
         } else if (config.provider === 'anthropic') {
-            response = await sendAnthropicChat(messages);
+            response = await sendAnthropicChat(messages, signal);
+        } else if (config.provider === 'openrouter') {
+            response = await sendOpenRouterChat(messages, signal);
         } else if (config.provider === 'custom') {
-            response = await sendCustomChat(messages);
+            response = await sendCustomChat(messages, signal);
         } else {
             throw new Error('Unknown provider: ' + config.provider);
         }
@@ -243,13 +352,114 @@ const AideModels = (() => {
             provider: config.provider,
             model: config.model,
             responseLength: response.length,
-            responsePreview: response.substring(0, 300)
+            responsePreview: response
         });
 
         return response;
     }
 
-    async function sendOllamaChat(messages) {
+
+
+    /**
+     * One or two plain-language sentences about ExtendScript; uses Ollama only (configured host).
+     * Returns '' if Ollama is unreachable or no suitable model.
+     */
+    /**
+     * Fetch with timeout wrapper (prevents hanging on slow/unreachable Ollama).
+     * @param {string} url - URL to fetch
+     * @param {number} timeoutMs - Timeout in milliseconds (default 30000)
+     */
+    async function fetchWithTimeout(url, timeoutMs) {
+        timeoutMs = timeoutMs || 30000;
+        var controller = new AbortController();
+        var timeoutId = setTimeout(function() { controller.abort(); }, timeoutMs);
+        try {
+            var response = await fetch(url, { signal: controller.signal });
+            clearTimeout(timeoutId);
+            return response;
+        } catch (e) {
+            clearTimeout(timeoutId);
+            throw e;
+        }
+    }
+
+    // Model priority list for auto-summarization (matching backup behavior)
+    var OLLAMA_SUMMARY_MODEL_PRIORITY = [
+        'qwen2.5-coder:14b',
+        'qwen2.5-coder:7b',
+        'deepseek-coder-v2:16b',
+        'codestral:22b',
+        'codegemma:7b',
+        'codellama:7b',
+        'llama3:8b'
+    ];
+
+    /**
+     * One or two plain-language sentences about ExtendScript; uses Ollama only (configured host).
+     * Returns '' if Ollama is unreachable or no suitable model.
+     */
+    async function ollamaSummarizeScriptCode(code) {
+        const host = (config.ollamaHost || 'http://localhost:11434').replace(/\/+$/, '');
+        let installed = [];
+        try {
+            const r = await fetch(`${host}/api/tags`);
+            if (!r.ok) return '';
+            const data = await r.json();
+            installed = (data.models || []).map(m => m.name);
+        } catch (e) {
+            return '';
+        }
+        if (!installed.length) return '';
+
+        let pick = null;
+        for (var i = 0; i < OLLAMA_SUMMARY_MODEL_PRIORITY.length; i++) {
+            if (installed.indexOf(OLLAMA_SUMMARY_MODEL_PRIORITY[i]) !== -1) {
+                pick = OLLAMA_SUMMARY_MODEL_PRIORITY[i];
+                break;
+            }
+        }
+        if (!pick) {
+            pick = installed.find(function(n) { return /coder|code|llama|mistral|gemma/i.test(n); }) || installed[0];
+        }
+
+        // Check user override
+        if (config.summaryModel && installed.indexOf(config.summaryModel) !== -1) {
+            pick = config.summaryModel;
+        }
+
+        const snippet = code.length > 14000
+            ? code.substring(0, 14000) + '\n/* … truncated … */'
+            : code;
+        const userMsg =
+            'In one short sentence (up to 22 words), describe what this Adobe Illustrator ExtendScript does. ' +
+            'Do not use an intro like "This script..." or "This Adobe Illustrator ExtendScript...". Start directly with a verb (e.g., "Clip a selected image..."). ' +
+            'If the script starts with comments that explain it, you may paraphrase those. ' +
+            'No markdown, no code fences, no bullets — only the sentence.\n\n---\n' +
+            snippet;
+
+        try {
+            const r = await fetch(`${host}/api/chat`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: pick,
+                    messages: [{ role: 'user', content: userMsg }],
+                    stream: false,
+                    options: { temperature: 0.2, num_ctx: 8192 }
+                })
+            });
+            if (!r.ok) return '';
+            const data = await r.json();
+            let out = (data.message && data.message.content) ? String(data.message.content).trim() : '';
+            out = out.replace(/^```[\s\S]*?```/m, '').trim();
+            if (out.length > 800) out = out.substring(0, 797) + '…';
+            return out;
+        } catch (e) {
+            return '';
+        }
+    }
+
+    async function sendOllamaChat(messages, signal) {
         const url = `${config.ollamaHost}/api/chat`;
         const response = await fetch(url, {
             method: 'POST',
@@ -259,14 +469,15 @@ const AideModels = (() => {
                 messages: messages,
                 stream: false,
                 options: { temperature: config.temperature, num_ctx: 8192 }
-            })
+            }),
+            signal: signal || null
         });
         if (!response.ok) throw new Error(`Ollama error: ${response.statusText}`);
         const data = await response.json();
         return data.message?.content || '';
     }
 
-    async function sendGoogleChat(messages) {
+    async function sendGoogleChat(messages, signal) {
         const systemInstruction = messages
             .filter(m => m.role === 'system')
             .map(m => m.content)
@@ -280,16 +491,20 @@ const AideModels = (() => {
             }));
 
         const model = config.model || 'gemini-2.0-flash';
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.apiKey}`;
+        const key = config.apiKeys?.google || '';
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
 
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                systemInstruction: { parts: [{ text: systemInstruction }] },
-                contents: contents,
-                generationConfig: { temperature: config.temperature, maxOutputTokens: 8192 }
-            })
+        const response = await fetchWithRetry(function() {
+            return fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    systemInstruction: { parts: [{ text: systemInstruction }] },
+                    contents: contents,
+                    generationConfig: { temperature: config.temperature }
+                }),
+                signal: signal || null
+            });
         });
 
         if (!response.ok) {
@@ -303,18 +518,22 @@ const AideModels = (() => {
         return candidate.content?.parts?.[0]?.text || '';
     }
 
-    async function sendOpenAIChat(messages) {
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${config.apiKey}`
-            },
-            body: JSON.stringify({
-                model: config.model || 'gpt-4o-mini',
-                messages: messages,
-                temperature: config.temperature
-            })
+    async function sendOpenAIChat(messages, signal) {
+        const key = config.apiKeys?.openai || '';
+        const response = await fetchWithRetry(function() {
+            return fetch('https://api.openai.com/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${key}`
+                },
+                body: JSON.stringify({
+                    model: config.model || 'gpt-4o-mini',
+                    messages: messages,
+                    temperature: config.temperature
+                }),
+                signal: signal || null
+            });
         });
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
@@ -324,25 +543,29 @@ const AideModels = (() => {
         return data.choices?.[0]?.message?.content || '';
     }
 
-    async function sendAnthropicChat(messages) {
+    async function sendAnthropicChat(messages, signal) {
         const system = messages.filter(m => m.role === 'system').map(m => m.content).join('\n');
         const nonSystem = messages.filter(m => m.role !== 'system');
+        const key = config.apiKeys?.anthropic || '';
 
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': config.apiKey,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
-                model: config.model || 'claude-sonnet-4-20250514',
-                max_tokens: 4096,
-                system: system,
-                messages: nonSystem,
-                temperature: config.temperature
-            })
+        const response = await fetchWithRetry(function() {
+            return fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': key,
+                    'anthropic-version': '2023-06-01',
+                    'anthropic-dangerous-direct-browser-access': 'true'
+                },
+                body: JSON.stringify({
+                    model: config.model || 'claude-sonnet-4-20250514',
+                    max_tokens: 4096,
+                    system: system,
+                    messages: nonSystem,
+                    temperature: config.temperature
+                }),
+                signal: signal || null
+            });
         });
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
@@ -352,20 +575,49 @@ const AideModels = (() => {
         return data.content?.[0]?.text || '';
     }
 
-    async function sendCustomChat(messages) {
+    async function sendOpenRouterChat(messages, signal) {
+        const key = config.apiKeys?.openrouter || '';
+        const response = await fetchWithRetry(function() {
+            return fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${key}`
+                },
+                body: JSON.stringify({
+                    model: config.model || 'google/gemini-2.0-flash',
+                    messages: messages,
+                    temperature: config.temperature
+                }),
+                signal: signal || null
+            });
+        });
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.error?.message || `OpenRouter error: ${response.status}`);
+        }
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || '';
+    }
+
+    async function sendCustomChat(messages, signal) {
         if (!config.customEndpoint) throw new Error('No custom endpoint configured');
 
+        const key = config.apiKeys?.custom || '';
         const headers = { 'Content-Type': 'application/json' };
-        if (config.apiKey) headers['Authorization'] = `Bearer ${config.apiKey}`;
+        if (key) headers['Authorization'] = `Bearer ${key}`;
 
-        const response = await fetch(config.customEndpoint, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({
-                model: config.model || 'default',
-                messages: messages,
-                temperature: config.temperature
-            })
+        const response = await fetchWithRetry(function() {
+            return fetch(config.customEndpoint, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    model: config.model || 'default',
+                    messages: messages,
+                    temperature: config.temperature
+                }),
+                signal: signal || null
+            });
         });
         if (!response.ok) {
             const err = await response.json().catch(() => ({}));
@@ -376,11 +628,11 @@ const AideModels = (() => {
     }
 
     return {
-        loadSettings, saveSettings, getConfig, setConfig,
+        loadSettings, saveSettings, getConfig, setConfig, setApiKey,
         getDefaultModel, getRecommendedModels, getRemoteModels,
         fetchOllamaModels, fetchGoogleModels,
         checkOllamaConnection, testRemoteConnection,
-        sendChat,
+        sendChat, ollamaSummarizeScriptCode,
         log, getDebugLog, clearDebugLog, exportDebugLog
     };
 })();

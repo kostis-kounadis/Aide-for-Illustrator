@@ -20,6 +20,7 @@ enable_debug_mode.sh
 
 # Internal development rules
 GEMINI.md
+TO-DO.md
 
 # Editor/IDE
 .vscode/
@@ -37,3 +38,8 @@ npm-debug.log*
 
 # Logs
 *.log
+
+# Local AI
+plans/
+
+screenshots/_input-ignore

@@ -8,24 +8,6 @@
 </head>
 <body>
     <div class="app-container">
-        <!-- ─── Header ─── -->
-        <header class="app-header" id="app-header">
-            <div class="header-left">
-                <div class="logo-icon" id="logo-icon">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                        <path d="M2 17l10 5 10-5"/>
-                        <path d="M2 12l10 5 10-5"/>
-                    </svg>
-                </div>
-                <span class="header-title">Aide</span>
-            </div>
-            <div class="header-right">
-                <div class="connection-dot" id="connection-dot" title="Checking..."></div>
-                <span class="connection-label" id="connection-label">Checking...</span>
-            </div>
-        </header>
-
         <!-- ─── Tab Navigation ─── -->
         <nav class="tab-bar" id="tab-bar">
             <button class="tab-btn active" data-tab="chat" id="tab-chat" title="Chat">
@@ -88,15 +70,19 @@
                     </button>
                     <input type="file" id="file-input" accept=".csv,.txt,.tsv,.json" class="hidden">
                     <textarea id="prompt-input" placeholder="Describe your task..." rows="1"></textarea>
-                    <button id="send-btn" class="send-btn" title="Send (⌘+Enter)">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                            <line x1="22" y1="2" x2="11" y2="13"/>
-                            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
-                        </svg>
-                    </button>
+                    <button id="send-btn" class="send-btn" title="Send (⌘+Enter)"></button>
                 </div>
                 <div class="input-meta">
-                    <span class="model-indicator" id="model-indicator">qwen2.5-coder:7b</span>
+                    <div class="model-indicator-wrap" id="chat-model-indicator-wrap" title="Checking...">
+                        <div class="connection-dot" id="chat-connection-dot"></div>
+                        <span class="model-indicator" id="chat-model-indicator">Loading...</span>
+                    </div>
+
+                    <div class="auto-run-wrap" id="auto-run-wrap" title="Automatically run scripts when generated">
+                        <input type="checkbox" id="auto-run-checkbox">
+                        <label for="auto-run-checkbox">Auto Run</label>
+                    </div>
+
                     <button class="new-chat-btn" id="new-chat-btn" title="New conversation">
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="12" y1="5" x2="12" y2="19"/>
@@ -108,10 +94,21 @@
             </div>
         </main>
 
-        <!-- ─── Scripts Tab ─── -->
+        <!-- ─── Scripts Tab (launcher) ─── -->
         <main class="tab-content" id="view-scripts">
-            <div class="scripts-header">
-                <input type="text" class="search-input" id="scripts-search" placeholder="Search scripts...">
+            <div class="scripts-toolbar">
+                <div class="scripts-toolbar-left">
+                    <div class="scripts-subtabs" role="tablist">
+                        <button type="button" class="scripts-subtab active" data-scripts-subtab="aide" id="scripts-subtab-aide" role="tab">Aide</button>
+                        <button type="button" class="scripts-subtab" data-scripts-subtab="local" id="scripts-subtab-local" role="tab">Local</button>
+                    </div>
+                </div>
+                <div class="scripts-toolbar-right">
+                    <input type="text" class="search-input scripts-search-compact" id="scripts-search" placeholder="Search…" title="Search scripts">
+                    <button type="button" class="code-action-btn scripts-star-filter-btn" id="scripts-star-filter-btn" title="Show starred only">☆</button>
+                    <button type="button" class="code-action-btn scripts-view-toggle-btn" id="scripts-view-toggle-btn" title="Toggle compact / expanded view">☰</button>
+                    <button type="button" class="code-action-btn scripts-toolbar-refresh" id="scripts-refresh-btn" title="Refresh list & generate missing descriptions (Ollama)">↻</button>
+                </div>
             </div>
             <div class="scripts-list" id="scripts-list">
                 <div class="empty-state" id="scripts-empty">
@@ -119,8 +116,8 @@
                         <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
                         <polyline points="14 2 14 8 20 8"/>
                     </svg>
-                    <p>No saved scripts yet</p>
-                    <p class="empty-hint">Scripts you save from chat will appear here</p>
+                    <p class="scripts-empty-title">No saved scripts yet</p>
+                    <p class="empty-hint scripts-empty-hint">Scripts you save from chat will appear here</p>
                 </div>
             </div>
         </main>
@@ -128,9 +125,9 @@
         <!-- ─── Settings Tab ─── -->
         <main class="tab-content" id="view-settings">
             <div class="settings-sections">
-                <!-- Provider -->
+                <!-- Provider & model -->
                 <fieldset class="settings-group">
-                    <legend>Provider</legend>
+                    <legend>Provider & model</legend>
                     <div class="setting-row">
                         <label for="provider-select">Source</label>
                         <select id="provider-select">
@@ -138,6 +135,7 @@
                             <option value="google">Google Gemini</option>
                             <option value="openai">OpenAI</option>
                             <option value="anthropic">Anthropic</option>
+                            <option value="openrouter">OpenRouter</option>
                             <option value="custom">Custom API</option>
                         </select>
                     </div>
@@ -162,11 +160,9 @@
                         </div>
                     </div>
                     <p class="setting-hint hidden" id="provider-hint"></p>
-                </fieldset>
 
-                <!-- Model -->
-                <fieldset class="settings-group">
-                    <legend>Model</legend>
+                    <hr class="settings-divider">
+
                     <div class="setting-row">
                         <label for="model-select">Model</label>
                         <select id="model-select">
@@ -180,65 +176,123 @@
                             <button class="clear-btn" id="clear-custom-model" title="Clear custom model" disabled>✕</button>
                         </div>
                     </div>
-                    <button class="text-btn" id="refresh-models-btn">↻ Refresh Models</button>
-                </fieldset>
-
-                <!-- Recommended Models (Ollama only) -->
-                <fieldset class="settings-group" id="recommended-models-group">
-                    <legend>Recommended Ollama Models</legend>
-                    <div class="recommended-models" id="recommended-models">
-                        <!-- Populated by app.js -->
+                    <div class="settings-inline-btns">
+                        <button type="button" class="text-btn" id="refresh-models-btn">↻ Refresh Models</button>
+                        <button type="button" class="text-btn" id="clear-custom-models-list-btn">🗑 Clear Saved Models</button>
+                        <button type="button" class="text-btn" id="test-connection-btn">Test Connection</button>
+                        <span class="test-result" id="test-result"></span>
                     </div>
-                    <p class="setting-hint">Click a model to set it as active. Download via terminal: <code>ollama pull model-name</code></p>
                 </fieldset>
 
-                <!-- Advanced -->
+                <!-- Local scripts folders -->
                 <fieldset class="settings-group">
-                    <legend>Advanced</legend>
-                    <div class="setting-row">
-                        <label for="temperature-slider">Temperature</label>
-                        <div class="slider-row">
-                            <input type="range" id="temperature-slider" min="0" max="100" value="30" step="5">
-                            <span class="slider-value" id="temperature-value">0.3</span>
-                        </div>
-                    </div>
-                    <p class="setting-hint">Controls randomness of AI responses. Lower = more precise code. Higher = more creative. Applies to all providers. Recommended: 0.1–0.3 for code generation.</p>
-
-                    <div class="setting-row" style="margin-top:8px;">
-                        <label for="debug-toggle">Debug Logging</label>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="debug-toggle">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <p class="setting-hint">Logs all prompts, AI responses, and execution results for troubleshooting.</p>
-                    <div class="debug-actions hidden" id="debug-actions">
-                        <button class="compact-btn" id="export-debug-btn">Export Log</button>
-                        <button class="compact-btn danger" id="clear-debug-btn">Clear</button>
-                    </div>
+                    <legend>Local scripts folders</legend>
+                    <p class="setting-hint">Folders are scanned for .jsx / .js on the <strong>Scripts</strong> tab (Local). Use <strong>↻ Refresh</strong> there to rescan.</p>
+                    <div id="local-scripts-folders-list" class="local-folders-list"></div>
                 </fieldset>
 
-                <!-- Scripts Storage -->
-                <fieldset class="settings-group">
-                    <legend>Scripts Storage</legend>
-                    <p class="setting-hint">Saved scripts are stored in the browser. Export them as .jsx files to a folder.</p>
-                    <div class="storage-path">
-                        <span class="storage-path-value" id="scripts-folder-path">~/Documents/Aide Scripts/</span>
-                        <button class="compact-btn" id="change-scripts-folder" title="Change folder">Change</button>
-                    </div>
-                    <div class="debug-actions" style="margin-top:4px;">
-                        <button class="compact-btn" id="open-scripts-folder">Open Folder</button>
-                        <button class="compact-btn" id="export-all-scripts">Export All</button>
-                    </div>
-                </fieldset>
+                <!-- Advanced Settings (collapsible) -->
+                <details class="advanced-settings" id="advanced-settings">
+                    <summary>Advanced Settings</summary>
+                    <div class="advanced-content">
+                        <!-- Temperature -->
+                        <fieldset class="settings-group">
+                            <legend>Temperature</legend>
+                            <div class="setting-row">
+                                <label for="temperature-slider">Randomness</label>
+                                <div class="slider-row">
+                                    <input type="range" id="temperature-slider" min="0" max="100" value="30" step="5">
+                                    <span class="slider-value" id="temperature-value">0.3</span>
+                                </div>
+                            </div>
+                            <p class="setting-hint">Controls randomness of AI responses. Lower = more precise code. Higher = more creative. Applies to all providers. Recommended: 0.1–0.3 for code generation.</p>
+                        </fieldset>
 
-                <!-- Connection Test -->
-                <div class="settings-footer">
-                    <button class="test-btn" id="test-connection-btn">Test Connection</button>
-                    <span class="test-result" id="test-result"></span>
-                </div>
+                        <!-- Prompt Modules (opt-out) -->
+                        <fieldset class="settings-group">
+                            <legend>Prompt Modules <span class="module-hint">(unchecked = disabled from system prompt)</span></legend>
+                            <div class="setting-row setting-row--modules" style="flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 4px; margin-bottom: 2px;">
+                                <label class="toggle-wrap" style="display: flex; gap: 8px; cursor: pointer; font-size: 11px;">
+                                    <input type="checkbox" id="mod-scriptui" data-mod="scriptui" checked> ScriptUI Dialogs (~300 tokens)
+                                </label>
+                                <label class="toggle-wrap" style="display: flex; gap: 8px; cursor: pointer; font-size: 11px;">
+                                    <input type="checkbox" id="mod-menu" data-mod="menu" checked> Menu Commands (~400 tokens)
+                                </label>
+                                <label class="toggle-wrap" style="display: flex; gap: 8px; cursor: pointer; font-size: 11px;">
+                                    <input type="checkbox" id="mod-export" data-mod="export" checked> Export / Save (~150 tokens)
+                                </label>
+                                <label class="toggle-wrap" style="display: flex; gap: 8px; cursor: pointer; font-size: 11px;">
+                                    <input type="checkbox" id="mod-gradients" data-mod="gradients" checked> Gradients & Masks (~130 tokens)
+                                </label>
+                            </div>
+                            <p class="setting-hint" style="margin-top: 6px;">Token impact: <span id="module-tokens-live" style="font-family: var(--font-mono)">Base + 0 = ~2080</span></p>
+                        </fieldset>
+
+                        <!-- Debug logging -->
+                        <fieldset class="settings-group">
+                            <legend>Debug logging</legend>
+                            <div class="setting-row setting-row--debug-toggle">
+                                <p class="setting-hint setting-hint--toggle">Logs all prompts, AI responses, and execution results for troubleshooting.</p>
+                                <label class="toggle-switch toggle-switch--align-end">
+                                    <input type="checkbox" id="debug-toggle">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="debug-actions hidden" id="debug-actions">
+                                <button class="compact-btn" id="export-debug-btn">Export Log</button>
+                                <button class="compact-btn danger" id="clear-debug-btn">Clear</button>
+                            </div>
+                        </fieldset>
+
+                        <!-- Script descriptions -->
+                        <fieldset class="settings-group">
+                            <legend>Script descriptions</legend>
+                            <div class="setting-row setting-row--debug-toggle">
+                                <p class="setting-hint setting-hint--toggle">Auto-generate short descriptions for undescribed scripts when refreshing. Requires Ollama running locally.</p>
+                                <label class="toggle-switch toggle-switch--align-end">
+                                    <input type="checkbox" id="descriptions-toggle">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                            <div class="setting-row" style="margin-top: 8px;">
+                                <label for="summary-model-select">Auto-Summary Model</label>
+                                <select id="summary-model-select">
+                                    <option value="">[Auto-detect]</option>
+                                </select>
+                            </div>
+                            <div class="settings-inline-btns" id="desc-actions">
+                                <button type="button" class="text-btn" id="generate-descriptions-now">⚡ Generate Missing</button>
+                                <button type="button" class="text-btn" id="regenerate-script-descriptions-btn">↻ Regenerate All</button>
+                            </div>
+                            <div class="settings-inline-btns">
+                                <button type="button" class="text-btn" id="export-descriptions-csv">Export CSV</button>
+                                <button type="button" class="text-btn" id="import-descriptions-csv">Import CSV</button>
+                                <input type="file" id="import-descriptions-file" accept=".csv,.txt" class="hidden">
+                            </div>
+                        </fieldset>
+                    </div>
+                </details>
             </div>
         </main>
+    </div>
+
+    <!-- ─── Download Folder Overlay ─── -->
+    <div class="aide-overlay hidden" id="aide-overlay" role="dialog" aria-modal="true" aria-label="Save Script">
+        <div class="overlay-panel">
+            <div class="overlay-header">
+                <span class="overlay-title">Save Script</span>
+                <button class="overlay-close-btn" id="overlay-close-btn" title="Cancel" aria-label="Cancel">✕</button>
+            </div>
+            <p class="overlay-subtitle">Choose where to save <strong id="overlay-script-name"></strong></p>
+            <div class="overlay-body">
+                <button class="overlay-native-btn" id="overlay-native-btn">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                    Choose Location…
+                </button>
+                <div class="overlay-divider-row"><span class="overlay-divider-label">or save to</span></div>
+                <div class="overlay-folders" id="overlay-folders"></div>
+            </div>
+        </div>
     </div>
 
     <script src="js/CSInterface.js"></script>

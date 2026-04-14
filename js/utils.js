@@ -148,15 +148,15 @@ const AideUtils = (() => {
     }
 
     /**
-     * Add line numbers to code string (for display).
+     * Generate HTML for line-number sidebar.
      */
-    function addLineNumbers(code) {
-        const lines = code.split('\n');
-        const pad = String(lines.length).length;
-        return lines.map((line, i) => {
-            const num = String(i + 1).padStart(pad, ' ');
-            return `<span class="line-num">${num}</span>${escapeHtml(line)}`;
-        }).join('\n');
+    function generateLineNumbersHtml(code) {
+        const lines = (code || '').split('\n').length;
+        let html = '';
+        for (let i = 1; i <= lines; i++) {
+            html += `<span class="line-num" data-line="${i}"></span>\n`;
+        }
+        return html;
     }
 
     /**
@@ -180,5 +180,5 @@ const AideUtils = (() => {
         });
     }
 
-    return { stripCodeFences, validateSyntax, formatDate, uid, escapeHtml, addLineNumbers, readTextFile };
+    return { stripCodeFences, validateSyntax, formatDate, uid, escapeHtml, generateLineNumbersHtml, readTextFile };
 })();
